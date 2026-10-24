@@ -1,0 +1,707 @@
+<!doctype html>
+
+<html lang="ja">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<title>都道府県テスト</title>
+
+<style>
+
+body{
+
+  margin:0;
+
+  background:#f5f6f8;
+
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+
+  color:#222;
+
+}
+
+.wrap{
+
+  max-width:760px;
+
+  margin:auto;
+
+  padding:16px;
+
+}
+
+h1{font-size:26px;margin:4px 0}
+
+.sub{color:#666;font-size:14px;margin-bottom:16px}
+
+.card{
+
+  background:white;
+
+  border-radius:18px;
+
+  padding:16px;
+
+  margin-bottom:14px;
+
+  box-shadow:0 5px 20px rgba(0,0,0,.06);
+
+}
+
+button{
+
+  font:inherit;
+
+  border:0;
+
+  border-radius:12px;
+
+  padding:12px 14px;
+
+  font-weight:700;
+
+}
+
+.toolbar{
+
+  display:flex;
+
+  gap:8px;
+
+  flex-wrap:wrap;
+
+  margin-bottom:12px;
+
+}
+
+.btn{background:#eceff3}
+
+.primary{background:#222;color:white}
+
+#map,#quizMap{
+
+  width:100%;
+
+  min-height:350px;
+
+}
+
+svg{
+
+  width:100%;
+
+  height:auto;
+
+  max-height:60vh;
+
+}
+
+.prefecture{
+
+  fill:white!important;
+
+  stroke:#666!important;
+
+  stroke-width:1.5!important;
+
+  cursor:pointer;
+
+}
+
+.prefecture.selected{
+
+  stroke:#111!important;
+
+  stroke-width:5!important;
+
+}
+
+.prefecture.target{
+
+  stroke:#111!important;
+
+  stroke-width:7!important;
+
+}
+
+.hidden{display:none!important}
+
+.status{
+
+  margin-top:10px;
+
+  color:#666;
+
+}
+
+.question{
+
+  font-size:22px;
+
+  font-weight:800;
+
+  text-align:center;
+
+  margin:12px 0;
+
+}
+
+.choices{
+
+  display:grid;
+
+  grid-template-columns:repeat(2,1fr);
+
+  gap:8px;
+
+  margin-top:12px;
+
+}
+
+.choice{
+
+  min-height:48px;
+
+  background:white;
+
+  border:1px solid #ddd;
+
+}
+
+.correct{background:#dff3e3!important}
+
+.wrong{background:#f8dddd!important}
+
+.top{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  font-weight:800;
+
+}
+
+.message{
+
+  text-align:center;
+
+  min-height:30px;
+
+  margin-top:12px;
+
+  font-weight:800;
+
+}
+
+.actions{
+
+  display:flex;
+
+  gap:10px;
+
+  margin-top:12px;
+
+}
+
+.actions button{flex:1}
+
+.result{text-align:center}
+
+.big{font-size:54px;font-weight:900}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrap">
+
+<h1>都道府県テスト</h1>
+
+<div class="sub">好きな都道府県を選んでテストしよう</div>
+
+<section id="setup">
+
+<div class="card">
+
+<h2>① 出題する都道府県を選ぶ</h2>
+
+<div class="toolbar">
+
+<button class="btn" id="north10">北から10</button>
+
+<button class="btn" id="all">全部</button>
+
+<button class="btn" id="clear">全部外す</button>
+
+</div>
+
+<div id="map">日本地図を読み込み中…</div>
+
+<div class="status">
+
+選択中：<b id="count">0</b> 都道府県
+
+</div>
+
+</div>
+
+<div class="card">
+
+<button id="start" class="primary" style="width:100%">
+
+テスト開始
+
+</button>
+
+</div>
+
+</section>
+
+<section id="quiz" class="hidden">
+
+<div class="card">
+
+<div class="top">
+
+<span id="progress"></span>
+
+<span id="score"></span>
+
+</div>
+
+<div class="question">
+
+太い線で示された都道府県は？
+
+</div>
+
+<div id="quizMap"></div>
+
+<div id="choices" class="choices"></div>
+
+<div id="message" class="message"></div>
+
+<div class="actions">
+
+<button id="back">範囲選択へ</button>
+
+<button id="next" class="primary hidden">次へ</button>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="result" class="hidden">
+
+<div class="card result">
+
+<h2>結果</h2>
+
+<div id="final" class="big"></div>
+
+<div id="comment"></div>
+
+<div class="actions">
+
+<button id="retry" class="primary">もう一回</button>
+
+<button id="change">範囲を変える</button>
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+<script>
+
+const PREFS={
+
+"01":"北海道","02":"青森県","03":"岩手県","04":"宮城県",
+
+"05":"秋田県","06":"山形県","07":"福島県",
+
+"08":"茨城県","09":"栃木県","10":"群馬県",
+
+"11":"埼玉県","12":"千葉県","13":"東京都","14":"神奈川県",
+
+"15":"新潟県","16":"富山県","17":"石川県","18":"福井県",
+
+"19":"山梨県","20":"長野県","21":"岐阜県","22":"静岡県",
+
+"23":"愛知県","24":"三重県","25":"滋賀県","26":"京都府",
+
+"27":"大阪府","28":"兵庫県","29":"奈良県","30":"和歌山県",
+
+"31":"鳥取県","32":"島根県","33":"岡山県","34":"広島県",
+
+"35":"山口県","36":"徳島県","37":"香川県","38":"愛媛県",
+
+"39":"高知県","40":"福岡県","41":"佐賀県","42":"長崎県",
+
+"43":"熊本県","44":"大分県","45":"宮崎県","46":"鹿児島県",
+
+"47":"沖縄県"
+
+};
+
+const MAP_URL=
+
+"https://geolonia.github.io/japanese-prefectures/map-mobile.svg";
+
+let selected=new Set([
+
+"01","02","03","04","05",
+
+"06","07","08","09","10"
+
+]);
+
+let mapSvg="";
+
+let questions=[];
+
+let current=0;
+
+let correct=0;
+
+let answered=false;
+
+const $=s=>document.querySelector(s);
+
+function shuffle(a){
+
+  const x=[...a];
+
+  for(let i=x.length-1;i>0;i--){
+
+    const j=Math.floor(Math.random()*(i+1));
+
+    [x[i],x[j]]=[x[j],x[i]];
+
+  }
+
+  return x;
+
+}
+
+function codeOf(el){
+
+  return String(el.dataset.code||"").padStart(2,"0");
+
+}
+
+async function loadMap(){
+
+  try{
+
+    const r=await fetch(MAP_URL);
+
+    mapSvg=await r.text();
+
+    renderSetup();
+
+  }catch(e){
+
+    $("#map").textContent=
+
+    "日本地図を読み込めませんでした。再読み込みしてください。";
+
+  }
+
+}
+
+function putMap(host){
+
+  host.innerHTML=mapSvg;
+
+  const svg=host.querySelector("svg");
+
+  if(svg){
+
+    svg.removeAttribute("width");
+
+    svg.removeAttribute("height");
+
+  }
+
+  return [...host.querySelectorAll(".prefecture")];
+
+}
+
+function renderSetup(){
+
+  const list=putMap($("#map"));
+
+  list.forEach(el=>{
+
+    const code=codeOf(el);
+
+    if(selected.has(code))
+
+      el.classList.add("selected");
+
+    el.onclick=()=>{
+
+      if(selected.has(code))
+
+        selected.delete(code);
+
+      else
+
+        selected.add(code);
+
+      renderSetup();
+
+    };
+
+  });
+
+  $("#count").textContent=selected.size;
+
+  $("#start").disabled=selected.size<2;
+
+}
+
+$("#north10").onclick=()=>{
+
+  selected=new Set([
+
+  "01","02","03","04","05",
+
+  "06","07","08","09","10"
+
+  ]);
+
+  renderSetup();
+
+};
+
+$("#all").onclick=()=>{
+
+  selected=new Set(Object.keys(PREFS));
+
+  renderSetup();
+
+};
+
+$("#clear").onclick=()=>{
+
+  selected.clear();
+
+  renderSetup();
+
+};
+
+function startQuiz(){
+
+  questions=shuffle([...selected]);
+
+  current=0;
+
+  correct=0;
+
+  $("#setup").classList.add("hidden");
+
+  $("#result").classList.add("hidden");
+
+  $("#quiz").classList.remove("hidden");
+
+  renderQuestion();
+
+}
+
+function renderQuestion(){
+
+  answered=false;
+
+  const answer=questions[current];
+
+  $("#progress").textContent=
+
+  `${current+1} / ${questions.length}`;
+
+  $("#score").textContent=
+
+  `${correct}問正解`;
+
+  $("#message").textContent="";
+
+  $("#next").classList.add("hidden");
+
+  const list=putMap($("#quizMap"));
+
+  list.forEach(el=>{
+
+    const code=codeOf(el);
+
+    if(!selected.has(code))
+
+      el.style.opacity=".25";
+
+    if(code===answer)
+
+      el.classList.add("target");
+
+  });
+
+  const box=$("#choices");
+
+  box.innerHTML="";
+
+  shuffle([...selected]).forEach(code=>{
+
+    const b=document.createElement("button");
+
+    b.className="choice";
+
+    b.textContent=PREFS[code];
+
+    b.onclick=()=>checkAnswer(code,b);
+
+    box.appendChild(b);
+
+  });
+
+}
+
+function checkAnswer(code,button){
+
+  if(answered)return;
+
+  answered=true;
+
+  const answer=questions[current];
+
+  const buttons=
+
+  [...document.querySelectorAll(".choice")];
+
+  buttons.forEach(b=>{
+
+    b.disabled=true;
+
+    if(b.textContent===PREFS[answer])
+
+      b.classList.add("correct");
+
+  });
+
+  if(code===answer){
+
+    correct++;
+
+    $("#message").textContent="せいかい！🎉";
+
+  }else{
+
+    button.classList.add("wrong");
+
+    $("#message").textContent=
+
+    `正解は ${PREFS[answer]}`;
+
+  }
+
+  $("#score").textContent=
+
+  `${correct}問正解`;
+
+  $("#next").classList.remove("hidden");
+
+  $("#next").textContent=
+
+  current===questions.length-1
+
+  ?"結果を見る"
+
+  :"次へ";
+
+}
+
+$("#next").onclick=()=>{
+
+  current++;
+
+  if(current>=questions.length){
+
+    finish();
+
+  }else{
+
+    renderQuestion();
+
+  }
+
+};
+
+function finish(){
+
+  $("#quiz").classList.add("hidden");
+
+  $("#result").classList.remove("hidden");
+
+  $("#final").textContent=
+
+  `${correct} / ${questions.length}`;
+
+  const p=
+
+  Math.round(correct/questions.length*100);
+
+  $("#comment").textContent=
+
+  p===100
+
+  ?"満点！全部わかってる！"
+
+  :p>=80
+
+  ?"かなり覚えてる！"
+
+  :p>=60
+
+  ?"いい感じ！もう一回やってみよう"
+
+  :"少ない範囲から練習しよう！";
+
+}
+
+function setupScreen(){
+
+  $("#quiz").classList.add("hidden");
+
+  $("#result").classList.add("hidden");
+
+  $("#setup").classList.remove("hidden");
+
+  renderSetup();
+
+}
+
+$("#start").onclick=startQuiz;
+
+$("#retry").onclick=startQuiz;
+
+$("#change").onclick=setupScreen;
+
+$("#back").onclick=setupScreen;
+
+loadMap();
+
+</script>
+
+</body>
+
+</html>
